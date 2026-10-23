@@ -1,5 +1,9 @@
 # DoctrineModule for Laminas
 
+> **Fork notice:** this is an organization-maintained fork of
+> [doctrine/DoctrineModule](https://github.com/doctrine/DoctrineModule) 6.3.0 that replaces
+> laminas-cache with Symfony Cache. It is not an upstream release; see [FORK.md](FORK.md).
+
 [![Build Status](https://github.com/doctrine/DoctrineModule/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/doctrine/DoctrineModule/actions/workflows/continuous-integration.yml)
 [![Code Coverage](https://codecov.io/gh/doctrine/DoctrineModule/graphs/badge.svg)](https://app.codecov.io/gh/doctrine/DoctrineModule)
 [![Latest Stable Version](https://poser.pugx.org/doctrine/doctrine-module/v)](https://packagist.org/packages/doctrine/doctrine-module)
