@@ -70,6 +70,10 @@ class ModuleTest extends TestCase
         $this->assertArrayHasKey('doctrine', $config);
         $this->assertArrayHasKey('doctrine_factories', $config);
         $this->assertArrayHasKey('service_manager', $config);
+        $this->assertArrayHasKey('doctrine_module', $config);
+        $this->assertArrayNotHasKey('caches', $config);
+        $this->assertArrayHasKey('doctrinemodule.cache.array', $config['service_manager']['factories']);
+        $this->assertArrayHasKey('doctrinemodule.cache.redis', $config['service_manager']['factories']);
 
         $this->assertSame($config, unserialize(serialize($config)));
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DoctrineModule\Options;
 
-use DoctrineModule\Cache\LaminasStorageCache;
+use Doctrine\Common\Cache\Psr6\DoctrineProvider;
 use Laminas\Stdlib\AbstractOptions;
 
 /**
@@ -15,9 +15,10 @@ use Laminas\Stdlib\AbstractOptions;
 final class Cache extends AbstractOptions
 {
     /**
-     * Class used to instantiate the cache.
+     * Class (or container service name) used to instantiate the legacy doctrine/cache instance.
+     * The default wraps the PSR-6 pool referenced by "instance".
      */
-    protected string $class = LaminasStorageCache::class;
+    protected string $class = DoctrineProvider::class;
 
     /**
      * Namespace to prefix all cache ids with.
@@ -30,8 +31,7 @@ final class Cache extends AbstractOptions
     protected string $directory;
 
     /**
-     * Key to use for fetching the memcache, memcached, or redis instance from
-     * the service locator. Used only with Memcache. Memcached, and Redis.
+     * Service name of the PSR-6 cache pool wrapped by the DoctrineProvider class.
      */
     protected string|null $instance = null;
 

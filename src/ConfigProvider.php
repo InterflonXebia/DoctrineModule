@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace DoctrineModule;
 
-use DoctrineModule\Cache\LaminasStorageCache;
+use Doctrine\Common\Cache\Psr6\DoctrineProvider;
 use Laminas\Authentication\Storage\Session as LaminasSessionStorage;
-use Laminas\Cache\Storage\Adapter\Memory;
 
 /**
  * Config provider for DoctrineORMModule config
@@ -17,9 +16,9 @@ final class ConfigProvider
     public function __invoke(): array
     {
         return [
-            'caches' => $this->getCachesConfig(),
             'doctrine' => $this->getDoctrineConfig(),
             'doctrine_factories' => $this->getDoctrineFactoryConfig(),
+            'doctrine_module' => $this->getDoctrineModuleConfig(),
             'dependencies' => $this->getDependencyConfig(),
             'validators' => $this->getValidatorConfig(),
         ];
@@ -34,7 +33,14 @@ final class ConfigProvider
     {
         return [
             'invokables' => ['DoctrineModule\Authentication\Storage\Session' => LaminasSessionStorage::class],
-            'factories' => ['doctrine.cli' => Service\CliFactory::class],
+            'factories' => [
+                'doctrine.cli' => Service\CliFactory::class,
+                'doctrinemodule.cache.apcu' => Service\CachePool\ApcuPoolFactory::class,
+                'doctrinemodule.cache.array' => Service\CachePool\ArrayPoolFactory::class,
+                'doctrinemodule.cache.filesystem' => Service\CachePool\FilesystemPoolFactory::class,
+                'doctrinemodule.cache.memcached' => Service\CachePool\MemcachedPoolFactory::class,
+                'doctrinemodule.cache.redis' => Service\CachePool\RedisPoolFactory::class,
+            ],
             'abstract_factories' => ['DoctrineModule' => ServiceFactory\AbstractDoctrineServiceFactory::class],
         ];
     }
@@ -105,47 +111,40 @@ final class ConfigProvider
         ];
     }
 
-    /** @return array<non-empty-string, array{adapter: string, options?: mixed[], plugins?: mixed[]}> */
-    public function getCachesConfig(): array
+    /** @return array{cache_pools: array<non-empty-string, mixed[]>} */
+    public function getDoctrineModuleConfig(): array
     {
-        $defaultOptions = ['namespace' => 'DoctrineModule'];
+        return ['cache_pools' => $this->getCachePoolsConfig()];
+    }
 
+    /**
+     * Options for the Symfony Cache pools registered as "doctrinemodule.cache.*" services
+     *
+     * @return array<non-empty-string, mixed[]>
+     */
+    public function getCachePoolsConfig(): array
+    {
         return [
-            'doctrinemodule.cache.apcu' => [
-                'adapter' => 'apcu',
-                'options' => $defaultOptions,
-            ],
-            'doctrinemodule.cache.array' => [
-                'adapter' => Memory::class,
-                'options' => $defaultOptions,
-            ],
+            'doctrinemodule.cache.apcu' => ['namespace' => 'DoctrineModule'],
+            'doctrinemodule.cache.array' => [],
             'doctrinemodule.cache.filesystem' => [
-                'adapter' => 'filesystem',
-                'options' => $defaultOptions + [
-                    'cache_dir' => 'data/DoctrineModule/cache',
-                    // We need to be slightly less restrictive than Filesystem defaults:
-                    'key_pattern' => '/^[a-z0-9_\+\-\[\]\\\\$#]*$/Di',
-                ],
-                'plugins' => [['name' => 'serializer']],
+                'namespace' => 'DoctrineModule',
+                'directory' => 'data/DoctrineModule/cache',
             ],
             'doctrinemodule.cache.memcached' => [
-                'adapter' => 'memcached',
-                'options' => $defaultOptions + ['servers' => []],
+                'namespace' => 'DoctrineModule',
+                'servers' => [],
             ],
             'doctrinemodule.cache.redis' => [
-                'adapter' => 'redis',
-                'options' => $defaultOptions + [
-                    'server' => [
-                        'host' => 'localhost',
-                        'post' => 6379,
-                    ],
-                ],
+                'namespace' => 'DoctrineModule',
+                'dsn' => 'redis://localhost:6379',
             ],
         ];
     }
 
     /**
-     * Use laminas/laminas-cache, as doctrine/cache ^2.0 does not include any cache adapters anymore
+     * Legacy doctrine/cache services, wrapping the Symfony Cache pools above, as doctrine/cache ^2.0
+     * does not include any cache adapters anymore
      *
      * @return array<non-empty-string,array{class:class-string,instance?:string,namespace?:string,directory?:string}>
      */
@@ -153,23 +152,23 @@ final class ConfigProvider
     {
         return [
             'apcu' => [
-                'class' => LaminasStorageCache::class,
+                'class' => DoctrineProvider::class,
                 'instance' => 'doctrinemodule.cache.apcu',
             ],
             'array' => [
-                'class' => LaminasStorageCache::class,
+                'class' => DoctrineProvider::class,
                 'instance' => 'doctrinemodule.cache.array',
             ],
             'filesystem' => [
-                'class' => LaminasStorageCache::class,
+                'class' => DoctrineProvider::class,
                 'instance' => 'doctrinemodule.cache.filesystem',
             ],
             'memcached' => [
-                'class' => LaminasStorageCache::class,
+                'class' => DoctrineProvider::class,
                 'instance' => 'doctrinemodule.cache.memcached',
             ],
             'redis' => [
-                'class' => LaminasStorageCache::class,
+                'class' => DoctrineProvider::class,
                 'instance' => 'doctrinemodule.cache.redis',
             ],
         ];

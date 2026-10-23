@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace DoctrineModule\Service;
 
 use Doctrine\Common\Annotations;
+use Doctrine\Common\Cache\Cache as LegacyCache;
+use Doctrine\Common\Cache\Psr6\CacheAdapter;
 use Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver as MongoODMAnnotationDriver;
 use Doctrine\ODM\MongoDB\Mapping\Driver\AttributeDriver as MongoODMAttributeDriver;
 use Doctrine\ORM\Mapping\Driver\AnnotationDriver as ORMAnnotationDriver;
@@ -20,6 +22,7 @@ use Psr\Container\ContainerInterface;
 use RuntimeException;
 
 use function class_exists;
+use function get_debug_type;
 use function is_a;
 use function sprintf;
 
@@ -89,12 +92,11 @@ final class DriverFactory extends AbstractFactory
                     $container->get($options->getCache()),
                 );
             } elseif (class_exists(Annotations\PsrCachedReader::class)) {
-                // For Doctrine Annotations 2.x, we can use the PsrCachedReader if
-                // the cache supports the appropriate interface.
-                $cache = $container->get($options->getCache());
-                if ($cache instanceof CacheItemPoolInterface) {
-                    $reader = new Annotations\PsrCachedReader($reader, $cache);
-                }
+                // For Doctrine Annotations 2.x, the PsrCachedReader needs a PSR-6 pool.
+                $reader = new Annotations\PsrCachedReader(
+                    $reader,
+                    $this->getAnnotationCachePool($container, $options->getCache()),
+                );
             }
 
             $driver = new $class($reader, $paths);
@@ -143,5 +145,33 @@ final class DriverFactory extends AbstractFactory
         }
 
         return $driver;
+    }
+
+    /**
+     * Native PSR-6 pools are used as they are. Legacy doctrine/cache services (such as the default
+     * "doctrine.cache.array") are adapted through doctrine/cache's PSR-6 bridge, which unwraps a
+     * DoctrineProvider back to its underlying pool.
+     *
+     * @throws RuntimeException
+     */
+    private function getAnnotationCachePool(ContainerInterface $container, string $serviceName): CacheItemPoolInterface
+    {
+        $cache = $container->get($serviceName);
+
+        if ($cache instanceof CacheItemPoolInterface) {
+            return $cache;
+        }
+
+        if ($cache instanceof LegacyCache) {
+            return CacheAdapter::wrap($cache);
+        }
+
+        throw new RuntimeException(sprintf(
+            'Annotation cache service "%s" must implement %s or %s, got %s.',
+            $serviceName,
+            CacheItemPoolInterface::class,
+            LegacyCache::class,
+            get_debug_type($cache),
+        ));
     }
 }

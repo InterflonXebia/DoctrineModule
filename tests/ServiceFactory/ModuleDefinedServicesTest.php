@@ -8,13 +8,13 @@ use Composer\InstalledVersions;
 use Composer\Semver\VersionParser;
 use Doctrine\Common\Cache\ArrayCache;
 use Doctrine\Common\Cache\FilesystemCache;
-use DoctrineModule\Cache\LaminasStorageCache;
+use Doctrine\Common\Cache\Psr6\DoctrineProvider;
 use DoctrineModuleTest\ServiceManagerFactory;
-use Laminas\Cache\Storage\Adapter\Filesystem;
-use Laminas\Cache\Storage\Adapter\Memory;
 use Laminas\ServiceManager\Exception\ServiceNotFoundException;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
 /**
  * Test that verifies that services are defined correctly
@@ -71,6 +71,11 @@ class ModuleDefinedServicesTest extends TestCase
             ['doctrine.cache.filesystem', true],
             ['doctrine.cache.memcached', true],
             ['doctrine.cache.redis', true],
+            ['doctrinemodule.cache.apcu', true],
+            ['doctrinemodule.cache.array', true],
+            ['doctrinemodule.cache.filesystem', true],
+            ['doctrinemodule.cache.memcached', true],
+            ['doctrinemodule.cache.redis', true],
             ['doctrine.cache.memcache', $legacyCacheShouldExist],
             ['doctrine.cache.wincache', $legacyCacheShouldExist],
             ['doctrine.cache.xcache', $legacyCacheShouldExist],
@@ -102,10 +107,10 @@ class ModuleDefinedServicesTest extends TestCase
         }
 
         return [
-            ['doctrine.cache.array', LaminasStorageCache::class],
-            ['doctrine.cache.filesystem', LaminasStorageCache::class],
-            ['doctrinemodule.cache.array', Memory::class],
-            ['doctrinemodule.cache.filesystem', Filesystem::class],
+            ['doctrine.cache.array', DoctrineProvider::class],
+            ['doctrine.cache.filesystem', DoctrineProvider::class],
+            ['doctrinemodule.cache.array', ArrayAdapter::class],
+            ['doctrinemodule.cache.filesystem', FilesystemAdapter::class],
         ];
     }
 
